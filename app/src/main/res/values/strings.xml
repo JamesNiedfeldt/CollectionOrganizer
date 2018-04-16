@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Collection Organizer</string>
+    <string name="action_new">New</string>
+    <string name="item_name">Empty</string>
+</resources>
