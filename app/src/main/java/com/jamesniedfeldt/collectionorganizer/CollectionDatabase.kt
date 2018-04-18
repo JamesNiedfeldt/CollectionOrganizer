@@ -22,7 +22,7 @@ import android.widget.TextView
 class CollectionDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION){
     private val db: SQLiteDatabase
     private val context: Context
-    private val items = HashMap<Int, Item>()
+    private var items = mutableListOf<Item>()
     var collectionSize: Int
 
     companion object : BaseColumns {
@@ -30,6 +30,7 @@ class CollectionDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_
         const val COLUMN_NAME_ITEMNAME = "Name"
         const val COLUMN_NAME_CATEGORY = "Category"
         const val COLUMN_NAME_PIC = "Picture"
+        const val COLUMN_NAME_RATING = "Rating" //TODO: implement this
         const val SQL_CREATE_ENTRIES =
                 "CREATE TABLE IF NOT EXISTS $TABLE_NAME (" +
                         "${BaseColumns._ID} INTEGER PRIMARY KEY, " +
@@ -74,29 +75,23 @@ class CollectionDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_
                 put(COLUMN_NAME_PIC, inList[i].pic.toString())
             }
             assignId = db.insert(TABLE_NAME, null, values).toInt()
-            items.put(assignId, inList[i])
+            items.add(inList[i])
         }
         collectionSize = items.size
     }
 
     fun fetchByIndex(index: Int): Item? {
-        return items.values.elementAt(index)
+        return items[index]
     }
 
-    fun delete(index: Int){
+    fun delete(item: Item){
         val hashCode: Int
         val del: String
 
-        if(index < collectionSize) { //Items has that index
-            hashCode  = items.values.elementAt(index).hashCode()
-            del = "DELETE FROM $TABLE_NAME WHERE ${BaseColumns._ID}=${hashCode.toString()}"
-            db.execSQL(del)
-            items.remove(hashCode)
+            //del = "DELETE FROM $TABLE_NAME WHERE ${BaseColumns._ID}=${hashCode.toString()}"
+            //db.execSQL(del)
+            items.remove(item)
             collectionSize = items.size
-        }
-        else{
-            Log.i("DELETE", "Items does not contain index $index")
-        }
     }
 
     private fun retrieveFromDb(){
@@ -107,18 +102,18 @@ class CollectionDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_
         var tempPic: String
 
         if(cursor.moveToFirst()){
-            for(i in 0 until cursor.count-1){
+            for(i in 0 until cursor.count){
                 tempId = cursor.getInt(cursor.getColumnIndex(BaseColumns._ID))
                 tempName = cursor.getString(cursor.getColumnIndex(COLUMN_NAME_ITEMNAME))
                 tempCategory = cursor.getString(cursor.getColumnIndex(COLUMN_NAME_CATEGORY))
                 tempPic = cursor.getString(cursor.getColumnIndex(COLUMN_NAME_PIC))
-                items.put(tempId, Item(tempName, tempCategory, tempPic))
+                items.add(Item(tempName, tempCategory, 0, tempPic)) //TODO: implement ratings into database (THE 0 IS TEMPORARY!)
                 cursor.moveToNext()
             }
         }
     }
 
-    inner class Adapter : ArrayAdapter<Item>(context, R.layout.list_item, items.values.toList()) {
+    inner class Adapter : ArrayAdapter<Item>(context, R.layout.list_item, items) {
         override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
             val listRow: View?
 
@@ -132,15 +127,11 @@ class CollectionDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_
             val nameView: TextView = listRow!!.findViewById(R.id.item_name)
             val picView: ImageView = listRow!!.findViewById(R.id.item_pic)
 
-            nameView.text = items.values.elementAt(position).name
+            nameView.text = items[position].name
             //picView.setImageURI(items.values.elementAt(pos).pic)
             Log.i("ARRAY ADAPTER","getView called")
 
             return listRow
-        }
-
-         override fun notifyDataSetChanged() {
-            super.notifyDataSetChanged()
         }
     }
 }
