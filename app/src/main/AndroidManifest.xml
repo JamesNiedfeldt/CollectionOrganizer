@@ -16,6 +16,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity android:name=".EditItemActivity">
+            <intent-filter>
+                <action android:name="com.jamesniedfeldt.collectionorganizer.EDITITEM" />
+            </intent-filter>
+        </activity>
     </application>
 
     <uses-permission android:name="android.permission.READ_INTERNAL_STORAGE" />

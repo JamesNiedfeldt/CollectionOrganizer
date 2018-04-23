@@ -13,13 +13,29 @@
         android:layout_weight="1"
         app:srcCompat="@color/colorAccent" />
 
-    <TextView
-        android:id="@+id/item_name"
+    <LinearLayout
         android:layout_width="252dp"
-        android:layout_height="68dp"
-        android:layout_weight="1"
-        android:paddingStart="5dp"
-        android:text="@string/item_name"
-        android:textSize="24sp" />
+        android:layout_height="120dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/item_name"
+            android:layout_width="252dp"
+            android:layout_height="60dp"
+            android:layout_weight="1"
+            android:paddingStart="5dp"
+            android:text="@string/item_name"
+            android:textSize="24sp" />
+
+        <RatingBar
+            android:id="@+id/item_rate"
+            style="@android:style/Widget.DeviceDefault.Light.RatingBar"
+            android:layout_width="wrap_content"
+            android:layout_height="60dp"
+            android:layout_weight="1"
+            android:isIndicator="true"
+            android:numStars="5" />
+
+    </LinearLayout>
 
 </LinearLayout>

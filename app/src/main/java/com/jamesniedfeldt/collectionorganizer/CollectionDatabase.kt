@@ -5,12 +5,12 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import android.provider.BaseColumns
 import android.content.Context
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.ImageView
+import android.widget.RatingBar
 import android.widget.TextView
 
 /**
@@ -23,6 +23,7 @@ class CollectionDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_
     private val db: SQLiteDatabase
     private val context: Context
     private var items = mutableListOf<Item>()
+    private var categories = mutableListOf<String>()
     var collectionSize: Int
 
     companion object : BaseColumns {
@@ -30,12 +31,13 @@ class CollectionDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_
         const val COLUMN_NAME_ITEMNAME = "Name"
         const val COLUMN_NAME_CATEGORY = "Category"
         const val COLUMN_NAME_PIC = "Picture"
-        const val COLUMN_NAME_RATING = "Rating" //TODO: implement this
+        const val COLUMN_NAME_RATING = "Rating"
         const val SQL_CREATE_ENTRIES =
                 "CREATE TABLE IF NOT EXISTS $TABLE_NAME (" +
                         "${BaseColumns._ID} INTEGER PRIMARY KEY, " +
                         "$COLUMN_NAME_ITEMNAME TEXT, " +
                         "$COLUMN_NAME_CATEGORY TEXT, " +
+                        "$COLUMN_NAME_RATING INTEGER, " +
                         "$COLUMN_NAME_PIC TEXT)"
         const val SQL_DELETE_ENTRIES = "DROP TABLE IF EXISTS ${TABLE_NAME}"
         const val DATABASE_NAME = "Collection.db"
@@ -43,8 +45,8 @@ class CollectionDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_
     }
 
     init {
-        this.context = context;
-        db = this.writableDatabase;
+        this.context = context
+        db = this.writableDatabase
         retrieveFromDb()
         collectionSize = items.size
     }
@@ -54,66 +56,78 @@ class CollectionDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        //TODO: Figure out what is going on here?
         db.execSQL(SQL_DELETE_ENTRIES)
         onCreate(db)
     }
 
     override fun onDowngrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        //TODO: Figure out what is going on here?
         onUpgrade(db, oldVersion, newVersion)
     }
 
     fun insert(vararg inList: Item){
-        var assignId: Int
         var values: ContentValues
 
         for(i in 0 until inList.size){
             values = ContentValues().apply{
                 put(COLUMN_NAME_ITEMNAME, inList[i].name)
                 put(COLUMN_NAME_CATEGORY, inList[i].category)
+                put(COLUMN_NAME_RATING, inList[i].rating)
                 put(COLUMN_NAME_PIC, inList[i].pic.toString())
             }
-            assignId = db.insert(TABLE_NAME, null, values).toInt()
+            inList[i].id = db.insert(TABLE_NAME, null, values).toInt()
             items.add(inList[i])
         }
         collectionSize = items.size
-    }
-
-    fun fetchByIndex(index: Int): Item? {
-        return items[index]
+        determineCategories()
     }
 
     fun delete(item: Item){
         val hashCode: Int
         val del: String
 
-            //del = "DELETE FROM $TABLE_NAME WHERE ${BaseColumns._ID}=${hashCode.toString()}"
-            //db.execSQL(del)
-            items.remove(item)
-            collectionSize = items.size
+        del = "DELETE FROM $TABLE_NAME WHERE ${BaseColumns._ID}=${item.id}}"
+        db.execSQL(del)
+        items.remove(item)
+        collectionSize = items.size
+        determineCategories()
     }
 
     private fun retrieveFromDb(){
         val cursor = db.rawQuery("SELECT * FROM $TABLE_NAME", null)
-        var tempId: Int
         var tempName: String
         var tempCategory: String
+        var tempRating: Int
         var tempPic: String
+        var tempItem: Item
 
         if(cursor.moveToFirst()){
             for(i in 0 until cursor.count){
-                tempId = cursor.getInt(cursor.getColumnIndex(BaseColumns._ID))
                 tempName = cursor.getString(cursor.getColumnIndex(COLUMN_NAME_ITEMNAME))
                 tempCategory = cursor.getString(cursor.getColumnIndex(COLUMN_NAME_CATEGORY))
+                tempRating = cursor.getInt(cursor.getColumnIndex(COLUMN_NAME_RATING))
                 tempPic = cursor.getString(cursor.getColumnIndex(COLUMN_NAME_PIC))
-                items.add(Item(tempName, tempCategory, 0, tempPic)) //TODO: implement ratings into database (THE 0 IS TEMPORARY!)
+
+                tempItem = Item(tempName, tempCategory, tempRating, tempPic)
+                tempItem.id = cursor.getInt(cursor.getColumnIndex(BaseColumns._ID))
+
+                items.add(Item(tempName, tempCategory, tempRating, tempPic))
                 cursor.moveToNext()
+            }
+        }
+
+        determineCategories()
+    }
+
+    private fun determineCategories(){
+        for(i in 0 until items.size){
+            if(!categories.contains(items[i].category)){
+                categories.add(items[i].category)
             }
         }
     }
 
-    inner class Adapter : ArrayAdapter<Item>(context, R.layout.list_item, items) {
+    // Adapts list of items to the listView
+    inner class ItemAdapter : ArrayAdapter<Item>(context, R.layout.list_item, items) {
         override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
             val listRow: View?
 
@@ -125,11 +139,32 @@ class CollectionDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_
                 listRow = convertView
             }
             val nameView: TextView = listRow!!.findViewById(R.id.item_name)
+            val rateView: RatingBar = listRow!!.findViewById(R.id.item_rate)
             val picView: ImageView = listRow!!.findViewById(R.id.item_pic)
 
             nameView.text = items[position].name
+            rateView.rating = items[position].rating.toFloat()
             //picView.setImageURI(items.values.elementAt(pos).pic)
-            Log.i("ARRAY ADAPTER","getView called")
+
+            return listRow
+        }
+    }
+
+    // Adapts list of categories to the listView
+    inner class CategoryAdapter : ArrayAdapter<String>(context, R.layout.list_item, categories) {
+        override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+            val listRow: View?
+
+            if(convertView == null){
+                listRow = LayoutInflater.from(context)
+                        .inflate(R.layout.list_category, null, true)
+            }
+            else{
+                listRow = convertView
+            }
+            val categoryView: TextView = listRow!!.findViewById(R.id.category_only)
+
+            categoryView.text = categories[position]
 
             return listRow
         }

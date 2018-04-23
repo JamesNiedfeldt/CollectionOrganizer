@@ -1,5 +1,11 @@
 <resources>
     <string name="app_name">Collection Organizer</string>
     <string name="action_new">New</string>
-    <string name="item_name">Empty</string>
+    <string name="item_name">Name</string>
+    <string name="label_category">Category: </string>
+    <string name="edit_category">Category</string>
+    <string name="label_rating">Rating: </string>
+    <string name="button_cancel">Cancel</string>
+    <string name="button_ok">Ok</string>
+    <string name="button_delete">Delete</string>
 </resources>
