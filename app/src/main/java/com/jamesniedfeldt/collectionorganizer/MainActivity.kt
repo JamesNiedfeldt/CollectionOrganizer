@@ -5,24 +5,31 @@ import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
+import android.widget.AdapterView
 import android.widget.ListView
 import com.jamesniedfeldt.collectionorganizer.R.id.*
 
 const val NEW_ITEM = 111
 
 class MainActivity : AppCompatActivity() {
-    var add = true
     lateinit var db: CollectionDatabase
-    lateinit var adapter: CollectionDatabase.ItemAdapter
-    lateinit var categoryList: ListView
+    lateinit var catAdapter: CollectionDatabase.CategoryAdapter
+    lateinit var list: ListView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         db = CollectionDatabase(this)
-        categoryList = findViewById(list_category)
-        adapter = db.ItemAdapter()
-        categoryList.adapter = adapter
+        list = findViewById(list_category)
+        catAdapter = db.CategoryAdapter()
+        list.adapter = catAdapter
+
+        list.setOnItemClickListener(object: AdapterView.OnItemClickListener{
+            override fun onItemClick(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                showItems()
+            }
+        })
     }
 
     override fun onOptionsItemSelected(item: MenuItem) = when(item.itemId) {
@@ -49,7 +56,7 @@ class MainActivity : AppCompatActivity() {
             val pic = results[3]
             val item = Item(name, category, rating, pic)
             db.insert(item)
-            adapter.notifyDataSetChanged()
+            catAdapter.notifyDataSetChanged()
         }
     }
 
@@ -57,5 +64,12 @@ class MainActivity : AppCompatActivity() {
         val intent = Intent(this, EditItemActivity::class.java)
         intent.putExtra("NEWITEM", "")
         startActivityForResult(intent, NEW_ITEM)
+    }
+
+    fun showItems(){
+        /* TODO: create an additional activity to show only the items of the selected category;
+         * an intent should be passed with the selected category where a new CollectionDatabase obj
+         * will be initialized, containing only those items with the selected category
+         */
     }
 }

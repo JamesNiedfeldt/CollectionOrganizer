@@ -47,7 +47,8 @@ class CollectionDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_
     init {
         this.context = context
         db = this.writableDatabase
-        retrieveFromDb()
+        retrieveAllFromDb()
+        determineCategories()
         collectionSize = items.size
     }
 
@@ -92,13 +93,15 @@ class CollectionDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_
         determineCategories()
     }
 
-    private fun retrieveFromDb(){
+    fun retrieveAllFromDb(){
         val cursor = db.rawQuery("SELECT * FROM $TABLE_NAME", null)
         var tempName: String
         var tempCategory: String
         var tempRating: Int
         var tempPic: String
         var tempItem: Item
+
+        items.clear()
 
         if(cursor.moveToFirst()){
             for(i in 0 until cursor.count){
@@ -114,8 +117,37 @@ class CollectionDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_
                 cursor.moveToNext()
             }
         }
-
         determineCategories()
+        collectionSize = items.size
+    }
+
+    fun retrieveByCategory(category: String){
+        val cursor = db.rawQuery("SELECT * FROM $TABLE_NAME " +
+                "WHERE $COLUMN_NAME_CATEGORY=$category", null)
+        var tempName: String
+        var tempCategory: String
+        var tempRating: Int
+        var tempPic: String
+        var tempItem: Item
+
+        items.clear()
+
+        if(cursor.moveToFirst()){
+            for(i in 0 until cursor.count){
+                tempName = cursor.getString(cursor.getColumnIndex(COLUMN_NAME_ITEMNAME))
+                tempCategory = cursor.getString(cursor.getColumnIndex(COLUMN_NAME_CATEGORY))
+                tempRating = cursor.getInt(cursor.getColumnIndex(COLUMN_NAME_RATING))
+                tempPic = cursor.getString(cursor.getColumnIndex(COLUMN_NAME_PIC))
+
+                tempItem = Item(tempName, tempCategory, tempRating, tempPic)
+                tempItem.id = cursor.getInt(cursor.getColumnIndex(BaseColumns._ID))
+
+                items.add(Item(tempName, tempCategory, tempRating, tempPic))
+                cursor.moveToNext()
+            }
+        }
+        determineCategories()
+        collectionSize = items.size
     }
 
     private fun determineCategories(){
@@ -144,7 +176,7 @@ class CollectionDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_
 
             nameView.text = items[position].name
             rateView.rating = items[position].rating.toFloat()
-            //picView.setImageURI(items.values.elementAt(pos).pic)
+            picView.setImageURI(items[position].pic)
 
             return listRow
         }

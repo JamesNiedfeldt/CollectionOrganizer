@@ -21,9 +21,23 @@
                 <action android:name="com.jamesniedfeldt.collectionorganizer.EDITITEM" />
             </intent-filter>
         </activity>
+
+        <!-- This code largely borrowed from https://developer.android.com/training/camera/photobasics.html -->
+        <provider
+            android:name="android.support.v4.content.FileProvider"
+            android:authorities="com.jamesniedfeldt.collectionorganizer.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths"></meta-data>
+        </provider>
+
     </application>
 
     <uses-permission android:name="android.permission.READ_INTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_INTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
 
 </manifest>

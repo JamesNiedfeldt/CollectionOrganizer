@@ -22,6 +22,6 @@ class Item(name: String, category: String, rating: Int, pic: String) {
         this.name = name
         this.category = category
         this.rating = rating
-        this.pic = Uri.parse(pic)
+        this.pic = Uri.parse(pic) //Make the URI reusable
     }
 }

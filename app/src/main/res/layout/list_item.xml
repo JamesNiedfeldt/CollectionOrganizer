@@ -8,9 +8,10 @@
 
     <ImageView
         android:id="@+id/item_pic"
-        android:layout_width="120dp"
+        android:layout_width="0dp"
         android:layout_height="120dp"
         android:layout_weight="1"
+        android:scaleType="centerCrop"
         app:srcCompat="@color/colorAccent" />
 
     <LinearLayout
@@ -24,6 +25,7 @@
             android:layout_height="60dp"
             android:layout_weight="1"
             android:paddingStart="5dp"
+            android:paddingEnd="5dp"
             android:text="@string/item_name"
             android:textSize="24sp" />
 
