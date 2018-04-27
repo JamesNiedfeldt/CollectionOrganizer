@@ -5,6 +5,7 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import android.provider.BaseColumns
 import android.content.Context
+import android.support.v4.content.FileProvider
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -12,14 +13,16 @@ import android.widget.ArrayAdapter
 import android.widget.ImageView
 import android.widget.RatingBar
 import android.widget.TextView
+import java.io.File
+import java.net.URI
 
-/**
- * Created by James on 4/10/2018.
+/*
  * Code largely borrowed from https://developer.android.com/training/data-storage/sqlite.html
  * And from http://androidpala.com/kotlin-sqlite-database/
  */
 
-class CollectionDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION){
+class CollectionDatabase(context: Context, basic: Boolean = true) :
+        SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION){
     private val db: SQLiteDatabase
     private val context: Context
     private var items = mutableListOf<Item>()
@@ -47,7 +50,11 @@ class CollectionDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_
     init {
         this.context = context
         db = this.writableDatabase
-        retrieveAllFromDb()
+        if(basic){
+            /* Populates 'items' with every object saved. If this is false, 'items' is empty
+             * because it will be populated with specific items later. */
+            retrieveAllFromDb()
+        }
         determineCategories()
         collectionSize = items.size
     }
@@ -83,10 +90,12 @@ class CollectionDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_
     }
 
     fun delete(item: Item){
-        val hashCode: Int
-        val del: String
+        val del = "DELETE FROM $TABLE_NAME WHERE ${BaseColumns._ID}=${item.id}"
+        var photo: File? = null
 
-        del = "DELETE FROM $TABLE_NAME WHERE ${BaseColumns._ID}=${item.id}}"
+        photo = File(item.pic.path)
+        photo.delete()
+
         db.execSQL(del)
         items.remove(item)
         collectionSize = items.size
@@ -123,7 +132,7 @@ class CollectionDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_
 
     fun retrieveByCategory(category: String){
         val cursor = db.rawQuery("SELECT * FROM $TABLE_NAME " +
-                "WHERE $COLUMN_NAME_CATEGORY=$category", null)
+                "WHERE $COLUMN_NAME_CATEGORY='$category'", null)
         var tempName: String
         var tempCategory: String
         var tempRating: Int
@@ -142,7 +151,7 @@ class CollectionDatabase(context: Context) : SQLiteOpenHelper(context, DATABASE_
                 tempItem = Item(tempName, tempCategory, tempRating, tempPic)
                 tempItem.id = cursor.getInt(cursor.getColumnIndex(BaseColumns._ID))
 
-                items.add(Item(tempName, tempCategory, tempRating, tempPic))
+                items.add(tempItem)
                 cursor.moveToNext()
             }
         }

@@ -8,17 +8,19 @@ import android.widget.Toast
 import kotlinx.android.synthetic.main.activity_edititem.*
 import android.net.Uri
 import android.os.Environment
-import android.support.v4.content.FileProvider
 import android.util.Log
 import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
 
+const val PIC_REQUESTED = 123
 
 class EditItemActivity : AppCompatActivity(){
     var okSelected = false
     var imageUri: Uri? = null
+    var fileMade = false
+    var photo: File? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,22 +31,21 @@ class EditItemActivity : AppCompatActivity(){
         //Borrowed from https://developer.android.com/training/camera/photobasics.html
         edit_pic.setOnClickListener{ view ->
             val getPic = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-            var photo: File? = null
 
-            try{
-                photo = createFile()
+            if(!fileMade){
+                try{
+                    photo = createFile()
+                    fileMade = true
+                }
+                catch(x: IOException){
+                    Log.i("ERROR","Couldn't create file")
+                }
             }
-            catch(x: IOException){
-                Log.i("ERROR","Couldn't create file")
-            }
+
             if(photo != null){
-                imageUri = FileProvider.getUriForFile(
-                        this,
-                        "com.jamesniedfeldt.collectionorganizer.fileprovider",
-                        photo
-                )
+                imageUri = Uri.fromFile(photo)
                 getPic.putExtra(MediaStore.EXTRA_OUTPUT, imageUri)
-                startActivityForResult(getPic, 1)
+                startActivityForResult(getPic, PIC_REQUESTED)
             }
         }
 
@@ -62,8 +63,13 @@ class EditItemActivity : AppCompatActivity(){
 
     //Borrowed from https://developer.android.com/training/camera/photobasics.html
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        if (requestCode == 1 && resultCode == RESULT_OK) {
+        if (requestCode == PIC_REQUESTED && resultCode == RESULT_OK) {
+            edit_pic.setImageURI(null) //Clear what was there if anything
             edit_pic.setImageURI(imageUri)
+        }
+        else{
+            photo!!.delete()
+            fileMade = false
         }
     }
 
@@ -100,6 +106,10 @@ class EditItemActivity : AppCompatActivity(){
             }
         }
         else{ //Activity is killed by other means
+            // Photo file is now dead space, get rid of it
+            if(photo != null){
+                photo!!.delete()
+            }
             super.finish()
         }
     }

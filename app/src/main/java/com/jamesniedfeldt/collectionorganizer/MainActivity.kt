@@ -14,7 +14,7 @@ const val NEW_ITEM = 111
 
 class MainActivity : AppCompatActivity() {
     lateinit var db: CollectionDatabase
-    lateinit var catAdapter: CollectionDatabase.CategoryAdapter
+    lateinit var adapter: CollectionDatabase.CategoryAdapter
     lateinit var list: ListView
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -22,12 +22,12 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         db = CollectionDatabase(this)
         list = findViewById(list_category)
-        catAdapter = db.CategoryAdapter()
-        list.adapter = catAdapter
+        adapter = db.CategoryAdapter()
+        list.adapter = adapter
 
         list.setOnItemClickListener(object: AdapterView.OnItemClickListener{
             override fun onItemClick(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                showItems()
+                showItems(parent!!.getItemAtPosition(position) as String)
             }
         })
     }
@@ -56,7 +56,7 @@ class MainActivity : AppCompatActivity() {
             val pic = results[3]
             val item = Item(name, category, rating, pic)
             db.insert(item)
-            catAdapter.notifyDataSetChanged()
+            adapter.notifyDataSetChanged()
         }
     }
 
@@ -66,10 +66,9 @@ class MainActivity : AppCompatActivity() {
         startActivityForResult(intent, NEW_ITEM)
     }
 
-    fun showItems(){
-        /* TODO: create an additional activity to show only the items of the selected category;
-         * an intent should be passed with the selected category where a new CollectionDatabase obj
-         * will be initialized, containing only those items with the selected category
-         */
+    fun showItems(category: String){
+        val intent = Intent(this, FilteredCategoryActivity::class.java)
+        intent.putExtra("CATEGORY", category)
+        startActivity(intent)
     }
 }
