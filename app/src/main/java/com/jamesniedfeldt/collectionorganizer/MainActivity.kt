@@ -1,8 +1,13 @@
 package com.jamesniedfeldt.collectionorganizer
 
+import android.content.ContentResolver
 import android.content.Intent
+import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Bundle
+import android.provider.MediaStore
 import android.support.v7.app.AppCompatActivity
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
@@ -54,15 +59,24 @@ class MainActivity : AppCompatActivity() {
             val category = results[1]
             val rating = results[2].toInt()
             val pic = results[3]
-            val item = Item(name, category, rating, pic)
+            val item = Item(name, category, rating, pic, this.contentResolver)
             db.insert(item)
-            adapter.notifyDataSetChanged()
         }
+        db.retrieveCategories()
+        adapter.notifyDataSetChanged()
+    }
+
+    override fun onResume(){
+        super.onResume()
+
+        Log.i("NOTE","Entered")
+        db.retrieveCategories()
+        adapter.notifyDataSetChanged()
     }
 
     fun newItem(){
         val intent = Intent(this, EditItemActivity::class.java)
-        intent.putExtra("NEWITEM", "")
+        intent.putExtra("FROMMAIN", "")
         startActivityForResult(intent, NEW_ITEM)
     }
 
@@ -70,5 +84,21 @@ class MainActivity : AppCompatActivity() {
         val intent = Intent(this, FilteredCategoryActivity::class.java)
         intent.putExtra("CATEGORY", category)
         startActivity(intent)
+    }
+}
+
+// This class is here to save space
+class Item(name: String, category: String, rating: Int, pic: String, resolver: ContentResolver) {
+    var id: Int = -1 //Meant to be set only by the CollectionDatabase
+    var name: String = name
+    var category: String = category
+    var rating: Int = rating
+    var pic: Uri = Uri.parse(pic)
+    var bitmap: Bitmap
+    val resolver = resolver
+
+    init{
+        val bm = MediaStore.Images.Media.getBitmap(resolver, this.pic)
+        bitmap = Bitmap.createScaledBitmap(bm, 120, 120, false)
     }
 }

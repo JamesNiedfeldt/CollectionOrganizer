@@ -15,6 +15,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 const val PIC_REQUESTED = 123
+//TODO: Finish implementing different ways of creating this activity
 
 class EditItemActivity : AppCompatActivity(){
     var okSelected = false
@@ -28,33 +29,49 @@ class EditItemActivity : AppCompatActivity(){
 
         val info = intent.extras
 
-        //Borrowed from https://developer.android.com/training/camera/photobasics.html
-        edit_pic.setOnClickListener{ view ->
-            val getPic = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+        //If sent from the item randomizer, we don't want it editable
+        if(!info.containsKey("NOEDIT")){
+            //Use an already existing file if the item already exists
+            if(info.containsKey("EDITITEM")){
+                val strings = info.getStringArrayList("EDITITEM")
+                photo = File(Uri.parse(strings[3]).path)
+                fileMade = true
 
-            if(!fileMade){
-                try{
-                    photo = createFile()
-                    fileMade = true
+                edit_name.setText(strings[0])
+                edit_category.setText(strings[1])
+                rating_bar.rating = strings[2].toFloat()
+                edit_pic.setImageURI(Uri.parse(strings[3]))
+            }
+
+            edit_pic.setOnClickListener { view ->
+                val getPic = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+
+                if (!fileMade) {
+                    try {
+                        photo = createFile()
+                        fileMade = true
+                    } catch (x: IOException) {
+                        Log.i("ERROR", "Couldn't create file")
+                    }
                 }
-                catch(x: IOException){
-                    Log.i("ERROR","Couldn't create file")
+
+                if (photo != null) {
+                    imageUri = Uri.fromFile(photo)
+                    getPic.putExtra(MediaStore.EXTRA_OUTPUT, imageUri)
+                    startActivityForResult(getPic, PIC_REQUESTED)
                 }
             }
 
-            if(photo != null){
-                imageUri = Uri.fromFile(photo)
-                getPic.putExtra(MediaStore.EXTRA_OUTPUT, imageUri)
-                startActivityForResult(getPic, PIC_REQUESTED)
+            //If sent from FilteredCategoryActivity, auto-populate the category
+            if(info.containsKey("FROMFILTERED")){
+                edit_category.setText(info["FROMFILTERED"].toString())
             }
-        }
 
-        //Called from "NEW" menu item
-        if(info.containsKey("NEWITEM")){
             button_ok.setOnClickListener { view ->
                 okSelected = true
                 finish()
             }
+
             button_cancel.setOnClickListener { view ->
                 finish()
             }
@@ -84,6 +101,7 @@ class EditItemActivity : AppCompatActivity(){
     }
 
     override fun finish(){
+        //User wants item added to the database
         if(okSelected){
             if(edit_name.text.toString() == ""){
                 Toast.makeText(this, "Name cannot be blank.", Toast.LENGTH_LONG).show()
@@ -105,7 +123,8 @@ class EditItemActivity : AppCompatActivity(){
                 super.finish()
             }
         }
-        else{ //Activity is killed by other means
+        //Activity is killed by other means
+        else{
             // Photo file is now dead space, get rid of it
             if(photo != null){
                 photo!!.delete()

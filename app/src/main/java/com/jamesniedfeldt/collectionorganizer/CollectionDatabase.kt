@@ -5,7 +5,6 @@ import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import android.provider.BaseColumns
 import android.content.Context
-import android.support.v4.content.FileProvider
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -14,14 +13,15 @@ import android.widget.ImageView
 import android.widget.RatingBar
 import android.widget.TextView
 import java.io.File
-import java.net.URI
+
+//TODO: Implement editing an item to database
 
 /*
  * Code largely borrowed from https://developer.android.com/training/data-storage/sqlite.html
  * And from http://androidpala.com/kotlin-sqlite-database/
  */
 
-class CollectionDatabase(context: Context, basic: Boolean = true) :
+class CollectionDatabase(context: Context, filtered: Boolean = false) :
         SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION){
     private val db: SQLiteDatabase
     private val context: Context
@@ -50,12 +50,10 @@ class CollectionDatabase(context: Context, basic: Boolean = true) :
     init {
         this.context = context
         db = this.writableDatabase
-        if(basic){
-            /* Populates 'items' with every object saved. If this is false, 'items' is empty
-             * because it will be populated with specific items later. */
-            retrieveAllFromDb()
+        if(!filtered){
+            // Only populates categories
+            retrieveCategories()
         }
-        determineCategories()
         collectionSize = items.size
     }
 
@@ -86,7 +84,6 @@ class CollectionDatabase(context: Context, basic: Boolean = true) :
             items.add(inList[i])
         }
         collectionSize = items.size
-        determineCategories()
     }
 
     fun delete(item: Item){
@@ -99,35 +96,23 @@ class CollectionDatabase(context: Context, basic: Boolean = true) :
         db.execSQL(del)
         items.remove(item)
         collectionSize = items.size
-        determineCategories()
     }
 
-    fun retrieveAllFromDb(){
-        val cursor = db.rawQuery("SELECT * FROM $TABLE_NAME", null)
-        var tempName: String
-        var tempCategory: String
-        var tempRating: Int
-        var tempPic: String
-        var tempItem: Item
+    fun retrieveCategories(){
+        val cursor = db.rawQuery("SELECT DISTINCT $COLUMN_NAME_CATEGORY " +
+                "FROM $TABLE_NAME", null)
+        var temp: String
 
-        items.clear()
+        categories.clear()
 
-        if(cursor.moveToFirst()){
-            for(i in 0 until cursor.count){
-                tempName = cursor.getString(cursor.getColumnIndex(COLUMN_NAME_ITEMNAME))
-                tempCategory = cursor.getString(cursor.getColumnIndex(COLUMN_NAME_CATEGORY))
-                tempRating = cursor.getInt(cursor.getColumnIndex(COLUMN_NAME_RATING))
-                tempPic = cursor.getString(cursor.getColumnIndex(COLUMN_NAME_PIC))
+        if(cursor.moveToFirst()) {
+            for (i in 0 until cursor.count) {
+                temp = cursor.getString(cursor.getColumnIndex(COLUMN_NAME_CATEGORY))
 
-                tempItem = Item(tempName, tempCategory, tempRating, tempPic)
-                tempItem.id = cursor.getInt(cursor.getColumnIndex(BaseColumns._ID))
-
-                items.add(Item(tempName, tempCategory, tempRating, tempPic))
+                categories.add(temp)
                 cursor.moveToNext()
             }
         }
-        determineCategories()
-        collectionSize = items.size
     }
 
     fun retrieveByCategory(category: String){
@@ -148,23 +133,14 @@ class CollectionDatabase(context: Context, basic: Boolean = true) :
                 tempRating = cursor.getInt(cursor.getColumnIndex(COLUMN_NAME_RATING))
                 tempPic = cursor.getString(cursor.getColumnIndex(COLUMN_NAME_PIC))
 
-                tempItem = Item(tempName, tempCategory, tempRating, tempPic)
+                tempItem = Item(tempName, tempCategory, tempRating, tempPic, context.contentResolver)
                 tempItem.id = cursor.getInt(cursor.getColumnIndex(BaseColumns._ID))
 
                 items.add(tempItem)
                 cursor.moveToNext()
             }
         }
-        determineCategories()
         collectionSize = items.size
-    }
-
-    private fun determineCategories(){
-        for(i in 0 until items.size){
-            if(!categories.contains(items[i].category)){
-                categories.add(items[i].category)
-            }
-        }
     }
 
     // Adapts list of items to the listView
@@ -185,7 +161,7 @@ class CollectionDatabase(context: Context, basic: Boolean = true) :
 
             nameView.text = items[position].name
             rateView.rating = items[position].rating.toFloat()
-            picView.setImageURI(items[position].pic)
+            picView.setImageBitmap(items[position].bitmap)
 
             return listRow
         }

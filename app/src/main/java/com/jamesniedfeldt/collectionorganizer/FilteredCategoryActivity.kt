@@ -1,8 +1,12 @@
 package com.jamesniedfeldt.collectionorganizer
 
+import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
+import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
+import android.view.Menu
+import android.view.MenuItem
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ListView
@@ -11,36 +15,98 @@ class FilteredCategoryActivity : AppCompatActivity(){
     lateinit var db: CollectionDatabase
     lateinit var adapter: CollectionDatabase.ItemAdapter
     lateinit var list: ListView
+    lateinit var category: String
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_filteredcategory)
-
         val info = intent.extras
-        db = CollectionDatabase(this, false)
-        db.retrieveByCategory(info["CATEGORY"].toString())
+        val alert = AlertDialog.Builder(this)
+
+        if(info.containsKey("CATEGORY")){
+            category = info["CATEGORY"].toString()
+            supportActionBar!!.title = category as CharSequence
+        }
+
+
+        db = CollectionDatabase(this, true)
+        db.retrieveByCategory(category)
         list = findViewById(R.id.list_items)
         adapter = db.ItemAdapter()
         list.adapter = adapter
 
-        if(info.containsKey("CATEGORY")){
-            supportActionBar!!.title = info["CATEGORY"] as CharSequence
-        }
-
         list.setOnItemLongClickListener(object: AdapterView.OnItemLongClickListener{
             override fun onItemLongClick(parent: AdapterView<*>?, view: View?,
                                          position: Int, id: Long): Boolean {
-                db.delete(parent!!.getItemAtPosition(position) as Item)
+                val item = parent!!.getItemAtPosition(position) as Item
+
+                alert.setPositiveButton("Yes",DialogInterface.OnClickListener{
+                    dialog, which: Int ->
+                    db.delete(item)
+                    adapter.notifyDataSetChanged()
+                })
+                alert.setNegativeButton("No",DialogInterface.OnClickListener{
+                    dialog, which: Int ->
+
+                })
+                alert.setMessage("Delete ${item.name}?")
+                alert.show()
+
                 return true
+            }
+        })
+
+        list.setOnItemClickListener(object: AdapterView.OnItemClickListener{
+            override fun onItemClick(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                editItem(parent!!.getItemAtPosition(position) as Item)
             }
         })
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+    override fun onOptionsItemSelected(item: MenuItem) = when(item.itemId) {
+        R.id.action_new -> {
+            newItem()
+            true
+        }
+        else -> {
+            super.onOptionsItemSelected(item)
+        }
     }
 
-    override fun finish(){
-        super.finish()
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.menu_main, menu)
+        return true
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?){
+        if(resultCode == RESULT_OK){
+            val results = data!!.extras.getStringArrayList("SUCCESS")
+            val name = results[0]
+            val category = results[1]
+            val rating = results[2].toInt()
+            val pic = results[3]
+            val item = Item(name, category, rating, pic, this.contentResolver)
+            db.insert(item)
+        }
+        db.retrieveByCategory(category)
+        adapter.notifyDataSetChanged()
+    }
+
+    fun newItem(){
+        val intent = Intent(this, EditItemActivity::class.java)
+        intent.putExtra("FROMFILTERED", category)
+        startActivityForResult(intent, NEW_ITEM)
+    }
+
+    fun editItem(item: Item){
+        val intent = Intent(this, EditItemActivity::class.java)
+        val itemStrings = arrayListOf(item.name,
+                item.name,
+                item.rating.toString(),
+                item.pic.toString())
+
+        intent.putExtra("EDITITEM", itemStrings)
+        startActivityForResult(intent, 123)
     }
 }
 
