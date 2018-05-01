@@ -9,12 +9,9 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
-import android.widget.ImageView
 import android.widget.RatingBar
 import android.widget.TextView
 import java.io.File
-
-//TODO: Implement editing an item to database
 
 /*
  * Code largely borrowed from https://developer.android.com/training/data-storage/sqlite.html
@@ -23,8 +20,8 @@ import java.io.File
 
 class CollectionDatabase(context: Context, filtered: Boolean = false) :
         SQLiteOpenHelper(context, DATABASE_NAME, null, DATABASE_VERSION){
-    private val db: SQLiteDatabase
-    private val context: Context
+    private val db = this.writableDatabase
+    private val context = context
     private var items = mutableListOf<Item>()
     private var categories = mutableListOf<String>()
     var collectionSize: Int
@@ -48,8 +45,6 @@ class CollectionDatabase(context: Context, filtered: Boolean = false) :
     }
 
     init {
-        this.context = context
-        db = this.writableDatabase
         if(!filtered){
             // Only populates categories
             retrieveCategories()
@@ -84,6 +79,20 @@ class CollectionDatabase(context: Context, filtered: Boolean = false) :
             items.add(inList[i])
         }
         collectionSize = items.size
+    }
+
+    fun edit(item: Item){
+        var values: ContentValues
+
+        values = ContentValues().apply{
+            put(COLUMN_NAME_ITEMNAME, item.name)
+            put(COLUMN_NAME_CATEGORY, item.category)
+            put(COLUMN_NAME_RATING, item.rating)
+            put(COLUMN_NAME_PIC, item.pic.toString())
+        }
+        db.update(TABLE_NAME, values, "${BaseColumns._ID} = ${item.id}", null)
+        items.remove(item)
+        items.add(item)
     }
 
     fun delete(item: Item){
@@ -133,7 +142,7 @@ class CollectionDatabase(context: Context, filtered: Boolean = false) :
                 tempRating = cursor.getInt(cursor.getColumnIndex(COLUMN_NAME_RATING))
                 tempPic = cursor.getString(cursor.getColumnIndex(COLUMN_NAME_PIC))
 
-                tempItem = Item(tempName, tempCategory, tempRating, tempPic, context.contentResolver)
+                tempItem = Item(tempName, tempCategory, tempRating, tempPic)
                 tempItem.id = cursor.getInt(cursor.getColumnIndex(BaseColumns._ID))
 
                 items.add(tempItem)
@@ -157,11 +166,9 @@ class CollectionDatabase(context: Context, filtered: Boolean = false) :
             }
             val nameView: TextView = listRow!!.findViewById(R.id.item_name)
             val rateView: RatingBar = listRow!!.findViewById(R.id.item_rate)
-            val picView: ImageView = listRow!!.findViewById(R.id.item_pic)
 
             nameView.text = items[position].name
             rateView.rating = items[position].rating.toFloat()
-            picView.setImageBitmap(items[position].bitmap)
 
             return listRow
         }

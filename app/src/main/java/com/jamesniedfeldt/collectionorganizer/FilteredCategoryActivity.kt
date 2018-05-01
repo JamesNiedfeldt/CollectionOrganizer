@@ -79,14 +79,26 @@ class FilteredCategoryActivity : AppCompatActivity(){
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?){
-        if(resultCode == RESULT_OK){
-            val results = data!!.extras.getStringArrayList("SUCCESS")
+        //Create new item
+        if(resultCode == RESULT_OK && data!!.extras.containsKey("SUCCESS_NEW")){
+            val results = data!!.extras.getStringArrayList("SUCCESS_NEW")
             val name = results[0]
             val category = results[1]
             val rating = results[2].toInt()
             val pic = results[3]
-            val item = Item(name, category, rating, pic, this.contentResolver)
+            val item = Item(name, category, rating, pic)
             db.insert(item)
+        }
+        //Edit already existing item
+        else if(resultCode == RESULT_OK && data!!.extras.containsKey("SUCCESS_EDIT")){
+            val results = data!!.extras.getStringArrayList("SUCCESS_EDIT")
+            val name = results[0]
+            val category = results[1]
+            val rating = results[2].toInt()
+            val pic = results[3]
+            val item = Item(name, category, rating, pic)
+            item.id = results[4].toInt()
+            db.edit(item)
         }
         db.retrieveByCategory(category)
         adapter.notifyDataSetChanged()
@@ -94,18 +106,19 @@ class FilteredCategoryActivity : AppCompatActivity(){
 
     fun newItem(){
         val intent = Intent(this, EditItemActivity::class.java)
-        intent.putExtra("FROMFILTERED", category)
+        intent.putExtra("NEW_FROM_FILTERED", category)
         startActivityForResult(intent, NEW_ITEM)
     }
 
     fun editItem(item: Item){
         val intent = Intent(this, EditItemActivity::class.java)
         val itemStrings = arrayListOf(item.name,
-                item.name,
+                item.category,
                 item.rating.toString(),
-                item.pic.toString())
+                item.pic.toString(),
+                item.id.toString())
 
-        intent.putExtra("EDITITEM", itemStrings)
+        intent.putExtra("EDIT_FROM_FILTERED", itemStrings)
         startActivityForResult(intent, 123)
     }
 }

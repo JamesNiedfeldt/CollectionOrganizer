@@ -15,13 +15,17 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 const val PIC_REQUESTED = 123
-//TODO: Finish implementing different ways of creating this activity
+const val NEW_FROM_MAIN = "NEW_FROM_MAIN"
+const val NEW_FROM_FILTERED = "NEW_FROM_FILTERED"
+const val EDIT_FROM_FILTERED = "EDIT_FROM_FILTERED"
+const val FROM_RANDOMIZER = "FROM_RANDOMIZER"
 
 class EditItemActivity : AppCompatActivity(){
-    var okSelected = false
+    var delete = true
     var imageUri: Uri? = null
     var fileMade = false
     var photo: File? = null
+    var toReturn: Intent? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,51 +33,24 @@ class EditItemActivity : AppCompatActivity(){
 
         val info = intent.extras
 
+        when {
+            info.containsKey(NEW_FROM_MAIN) -> setupNewFromMain()
+            info.containsKey(NEW_FROM_FILTERED) -> setupNewFromFiltered(info.getString(NEW_FROM_FILTERED))
+            info.containsKey(EDIT_FROM_FILTERED) -> setupEditFromFiltered(info)
+            info.containsKey(FROM_RANDOMIZER) -> setupFromRandomizer()
+        }
+
+
         //If sent from the item randomizer, we don't want it editable
-        if(!info.containsKey("NOEDIT")){
-            //Use an already existing file if the item already exists
-            if(info.containsKey("EDITITEM")){
-                val strings = info.getStringArrayList("EDITITEM")
-                photo = File(Uri.parse(strings[3]).path)
-                fileMade = true
-
-                edit_name.setText(strings[0])
-                edit_category.setText(strings[1])
-                rating_bar.rating = strings[2].toFloat()
-                edit_pic.setImageURI(Uri.parse(strings[3]))
-            }
-
+        if(!info.containsKey(FROM_RANDOMIZER)){
             edit_pic.setOnClickListener { view ->
                 val getPic = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-
-                if (!fileMade) {
-                    try {
-                        photo = createFile()
-                        fileMade = true
-                    } catch (x: IOException) {
-                        Log.i("ERROR", "Couldn't create file")
-                    }
-                }
 
                 if (photo != null) {
                     imageUri = Uri.fromFile(photo)
                     getPic.putExtra(MediaStore.EXTRA_OUTPUT, imageUri)
                     startActivityForResult(getPic, PIC_REQUESTED)
                 }
-            }
-
-            //If sent from FilteredCategoryActivity, auto-populate the category
-            if(info.containsKey("FROMFILTERED")){
-                edit_category.setText(info["FROMFILTERED"].toString())
-            }
-
-            button_ok.setOnClickListener { view ->
-                okSelected = true
-                finish()
-            }
-
-            button_cancel.setOnClickListener { view ->
-                finish()
             }
         }
     }
@@ -101,35 +78,131 @@ class EditItemActivity : AppCompatActivity(){
     }
 
     override fun finish(){
-        //User wants item added to the database
-        if(okSelected){
-            if(edit_name.text.toString() == ""){
-                Toast.makeText(this, "Name cannot be blank.", Toast.LENGTH_LONG).show()
-                okSelected = false
-            }
-            else if(edit_category.text.toString() == ""){
-                Toast.makeText(this, "Category cannot be blank", Toast.LENGTH_LONG).show()
-                okSelected = false
-            }
-            else{
-                val intent = Intent(this, MainActivity::class.java)
-                val itemStrings = arrayListOf(edit_name.text.toString(),
-                        edit_category.text.toString(),
-                        rating_bar.rating.toInt().toString(),
-                        imageUri.toString())
-
-                intent.putExtra("SUCCESS", itemStrings)
-                setResult(RESULT_OK, intent)
-                super.finish()
-            }
-        }
-        //Activity is killed by other means
-        else{
+        //If activity is killed by anything other than "ok", delete the photo file
+        if(delete){
             // Photo file is now dead space, get rid of it
             if(photo != null){
                 photo!!.delete()
             }
             super.finish()
         }
+        else{
+            super.finish()
+        }
+    }
+
+    //Activity is called via MainActivity (new menu item)
+    fun setupNewFromMain(){
+        try {
+            photo = createFile()
+        } catch (x: IOException) {
+            Log.i("ERROR", "Couldn't create file")
+        }
+
+        button_ok.setOnClickListener { view ->
+            if(edit_name.text.toString() == ""){
+                Toast.makeText(this, "Name cannot be blank.", Toast.LENGTH_LONG).show()
+            }
+            else if(edit_category.text.toString() == ""){
+                Toast.makeText(this, "Category cannot be blank", Toast.LENGTH_LONG).show()
+            }
+            else {
+                toReturn = Intent(this, MainActivity::class.java)
+                val itemStrings = arrayListOf(edit_name.text.toString(),
+                        edit_category.text.toString(),
+                        rating_bar.rating.toInt().toString(),
+                        imageUri.toString())
+
+                intent.putExtra("SUCCESS_NEW", itemStrings)
+                setResult(RESULT_OK, intent)
+                delete = false
+                finish()
+            }
+        }
+
+        button_cancel.setOnClickListener { view ->
+            delete = true
+            finish()
+        }
+    }
+
+    //Activity is called from FilteredCategoryActivity (new menu item)
+    fun setupNewFromFiltered(category: String){
+        edit_category.setText(category)
+        try {
+            photo = createFile()
+        } catch (x: IOException) {
+            Log.i("ERROR", "Couldn't create file")
+        }
+
+        button_ok.setOnClickListener { view ->
+            if(edit_name.text.toString() == ""){
+                Toast.makeText(this, "Name cannot be blank.", Toast.LENGTH_LONG).show()
+            }
+            else if(edit_category.text.toString() == ""){
+                Toast.makeText(this, "Category cannot be blank", Toast.LENGTH_LONG).show()
+            }
+            else {
+                toReturn = Intent(this, MainActivity::class.java)
+                val itemStrings = arrayListOf(edit_name.text.toString(),
+                        edit_category.text.toString(),
+                        rating_bar.rating.toInt().toString(),
+                        imageUri.toString())
+
+                intent.putExtra("SUCCESS_NEW", itemStrings)
+                setResult(RESULT_OK, intent)
+                delete = false
+                finish()
+            }
+        }
+
+        button_cancel.setOnClickListener { view ->
+            delete = true
+            finish()
+        }
+    }
+
+    //Activity is called from FilteredCategoryActivity (list item)
+    fun setupEditFromFiltered(info: Bundle){
+        val strings = info.getStringArrayList(EDIT_FROM_FILTERED)
+        photo = File(Uri.parse(strings[3]).path)
+        imageUri = Uri.fromFile(photo)
+        fileMade = true
+        delete = false
+
+        edit_name.setText(strings[0])
+        edit_category.setText(strings[1])
+        rating_bar.rating = strings[2].toFloat()
+        edit_pic.setImageURI(Uri.parse(strings[3]))
+
+        button_ok.setOnClickListener { view ->
+            if(edit_name.text.toString() == ""){
+                Toast.makeText(this, "Name cannot be blank.", Toast.LENGTH_LONG).show()
+            }
+            else if(edit_category.text.toString() == ""){
+                Toast.makeText(this, "Category cannot be blank", Toast.LENGTH_LONG).show()
+            }
+            else {
+                toReturn = Intent(this, MainActivity::class.java)
+                val itemStrings = arrayListOf(edit_name.text.toString(),
+                        edit_category.text.toString(),
+                        rating_bar.rating.toInt().toString(),
+                        imageUri.toString(),
+                        strings[4]) //Id of the item needs to be returned
+
+                intent.putExtra("SUCCESS_EDIT", itemStrings)
+                setResult(RESULT_OK, intent)
+                finish()
+            }
+        }
+
+        button_cancel.setOnClickListener { view ->
+            finish()
+        }
+    }
+
+    //Activity is called from FilteredCategoryActivity (randomizer)
+    fun setupFromRandomizer(){
+
     }
 }

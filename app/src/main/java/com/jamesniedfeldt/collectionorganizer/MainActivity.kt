@@ -1,11 +1,8 @@
 package com.jamesniedfeldt.collectionorganizer
 
-import android.content.ContentResolver
 import android.content.Intent
-import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
-import android.provider.MediaStore
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.view.Menu
@@ -54,12 +51,12 @@ class MainActivity : AppCompatActivity() {
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?){
         if(resultCode == RESULT_OK){
-            val results = data!!.extras.getStringArrayList("SUCCESS")
+            val results = data!!.extras.getStringArrayList("SUCCESS_NEW")
             val name = results[0]
             val category = results[1]
             val rating = results[2].toInt()
             val pic = results[3]
-            val item = Item(name, category, rating, pic, this.contentResolver)
+            val item = Item(name, category, rating, pic)
             db.insert(item)
         }
         db.retrieveCategories()
@@ -69,14 +66,13 @@ class MainActivity : AppCompatActivity() {
     override fun onResume(){
         super.onResume()
 
-        Log.i("NOTE","Entered")
         db.retrieveCategories()
         adapter.notifyDataSetChanged()
     }
 
     fun newItem(){
         val intent = Intent(this, EditItemActivity::class.java)
-        intent.putExtra("FROMMAIN", "")
+        intent.putExtra("NEW_FROM_MAIN", "")
         startActivityForResult(intent, NEW_ITEM)
     }
 
@@ -88,17 +84,10 @@ class MainActivity : AppCompatActivity() {
 }
 
 // This class is here to save space
-class Item(name: String, category: String, rating: Int, pic: String, resolver: ContentResolver) {
+class Item(name: String, category: String, rating: Int, pic: String) {
     var id: Int = -1 //Meant to be set only by the CollectionDatabase
     var name: String = name
     var category: String = category
     var rating: Int = rating
     var pic: Uri = Uri.parse(pic)
-    var bitmap: Bitmap
-    val resolver = resolver
-
-    init{
-        val bm = MediaStore.Images.Media.getBitmap(resolver, this.pic)
-        bitmap = Bitmap.createScaledBitmap(bm, 120, 120, false)
-    }
 }
