@@ -11,6 +11,11 @@ import android.view.View
 import android.widget.AdapterView
 import android.widget.ListView
 
+/* Created from MainActivity. Takes a category from an intent and displays only the items
+ * of that selected category. Users can create new items in this category or bring up
+ * a randomizer which randomly selects and displays an item from this category.
+ */
+
 class FilteredCategoryActivity : AppCompatActivity(){
     lateinit var db: CollectionDatabase
     lateinit var adapter: CollectionDatabase.ItemAdapter
@@ -25,9 +30,8 @@ class FilteredCategoryActivity : AppCompatActivity(){
 
         if(info.containsKey("CATEGORY")){
             category = info["CATEGORY"].toString()
-            supportActionBar!!.title = category as CharSequence
+            supportActionBar!!.title = category
         }
-
 
         db = CollectionDatabase(this, true)
         db.retrieveByCategory(category)
@@ -35,6 +39,7 @@ class FilteredCategoryActivity : AppCompatActivity(){
         adapter = db.ItemAdapter()
         list.adapter = adapter
 
+        //Prompt for deletion of item on long click
         list.setOnItemLongClickListener(object: AdapterView.OnItemLongClickListener{
             override fun onItemLongClick(parent: AdapterView<*>?, view: View?,
                                          position: Int, id: Long): Boolean {
@@ -56,6 +61,7 @@ class FilteredCategoryActivity : AppCompatActivity(){
             }
         })
 
+        //Edit selected item on click
         list.setOnItemClickListener(object: AdapterView.OnItemClickListener{
             override fun onItemClick(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
                 editItem(parent!!.getItemAtPosition(position) as Item)
@@ -68,6 +74,10 @@ class FilteredCategoryActivity : AppCompatActivity(){
             newItem()
             true
         }
+        R.id.action_random -> {
+            randomizer()
+            true
+        }
         else -> {
             super.onOptionsItemSelected(item)
         }
@@ -75,11 +85,13 @@ class FilteredCategoryActivity : AppCompatActivity(){
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.menu_main, menu)
+        val random: MenuItem = menu.findItem(R.id.action_random)
+        random.isVisible = true
         return true
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?){
-        //Create new item
+        //Created new item
         if(resultCode == RESULT_OK && data!!.extras.containsKey("SUCCESS_NEW")){
             val results = data!!.extras.getStringArrayList("SUCCESS_NEW")
             val name = results[0]
@@ -89,7 +101,7 @@ class FilteredCategoryActivity : AppCompatActivity(){
             val item = Item(name, category, rating, pic)
             db.insert(item)
         }
-        //Edit already existing item
+        //Edited already existing item
         else if(resultCode == RESULT_OK && data!!.extras.containsKey("SUCCESS_EDIT")){
             val results = data!!.extras.getStringArrayList("SUCCESS_EDIT")
             val name = results[0]
@@ -104,13 +116,13 @@ class FilteredCategoryActivity : AppCompatActivity(){
         adapter.notifyDataSetChanged()
     }
 
-    fun newItem(){
+    private fun newItem(){
         val intent = Intent(this, EditItemActivity::class.java)
         intent.putExtra("NEW_FROM_FILTERED", category)
         startActivityForResult(intent, NEW_ITEM)
     }
 
-    fun editItem(item: Item){
+    private fun editItem(item: Item){
         val intent = Intent(this, EditItemActivity::class.java)
         val itemStrings = arrayListOf(item.name,
                 item.category,
@@ -120,6 +132,12 @@ class FilteredCategoryActivity : AppCompatActivity(){
 
         intent.putExtra("EDIT_FROM_FILTERED", itemStrings)
         startActivityForResult(intent, 123)
+    }
+
+    private fun randomizer(){
+        val intent = Intent(this, EditItemActivity::class.java)
+        intent.putExtra("FROM_RANDOMIZER", category)
+        startActivity(intent)
     }
 }
 

@@ -6,4 +6,10 @@
         android:orderInCategory="100"
         android:title="@string/action_new"
         app:showAsAction="always" />
+    <item
+        android:id="@+id/action_random"
+        android:orderInCategory="90"
+        android:title="@string/action_random"
+        android:visible="false"
+        app:showAsAction="always"/>
 </menu>

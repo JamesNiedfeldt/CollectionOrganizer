@@ -1,16 +1,19 @@
 package com.jamesniedfeldt.collectionorganizer
 
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
-import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.AdapterView
 import android.widget.ListView
 import com.jamesniedfeldt.collectionorganizer.R.id.*
+
+/* Initial activity. The screen displays all of the categories of items saved.
+ * Selecting a category from the list will begin a new activity displaying
+ * a list of those items with the selected category.
+ */
 
 const val NEW_ITEM = 111
 
@@ -50,6 +53,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?){
+        //Add a newly created item to the database
         if(resultCode == RESULT_OK){
             val results = data!!.extras.getStringArrayList("SUCCESS_NEW")
             val name = results[0]
@@ -70,24 +74,17 @@ class MainActivity : AppCompatActivity() {
         adapter.notifyDataSetChanged()
     }
 
-    fun newItem(){
+    //Create a new item
+    private fun newItem(){
         val intent = Intent(this, EditItemActivity::class.java)
         intent.putExtra("NEW_FROM_MAIN", "")
         startActivityForResult(intent, NEW_ITEM)
     }
 
-    fun showItems(category: String){
+    //Show items from the selected category
+    private fun showItems(category: String){
         val intent = Intent(this, FilteredCategoryActivity::class.java)
         intent.putExtra("CATEGORY", category)
         startActivity(intent)
     }
-}
-
-// This class is here to save space
-class Item(name: String, category: String, rating: Int, pic: String) {
-    var id: Int = -1 //Meant to be set only by the CollectionDatabase
-    var name: String = name
-    var category: String = category
-    var rating: Int = rating
-    var pic: Uri = Uri.parse(pic)
 }

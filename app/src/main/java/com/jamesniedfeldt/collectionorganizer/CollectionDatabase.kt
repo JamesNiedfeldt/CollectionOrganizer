@@ -13,7 +13,8 @@ import android.widget.RatingBar
 import android.widget.TextView
 import java.io.File
 
-/*
+/* A collection of items that interacts with the database and provides adapters for the listviews.
+ *
  * Code largely borrowed from https://developer.android.com/training/data-storage/sqlite.html
  * And from http://androidpala.com/kotlin-sqlite-database/
  */
@@ -65,6 +66,11 @@ class CollectionDatabase(context: Context, filtered: Boolean = false) :
         onUpgrade(db, oldVersion, newVersion)
     }
 
+    fun retrieveItem(index: Int): Item {
+        return items[index]
+    }
+
+    //Add a new item to the database
     fun insert(vararg inList: Item){
         var values: ContentValues
 
@@ -78,9 +84,11 @@ class CollectionDatabase(context: Context, filtered: Boolean = false) :
             inList[i].id = db.insert(TABLE_NAME, null, values).toInt()
             items.add(inList[i])
         }
+        items.sort()
         collectionSize = items.size
     }
 
+    //Edit an item already in the database
     fun edit(item: Item){
         var values: ContentValues
 
@@ -93,8 +101,10 @@ class CollectionDatabase(context: Context, filtered: Boolean = false) :
         db.update(TABLE_NAME, values, "${BaseColumns._ID} = ${item.id}", null)
         items.remove(item)
         items.add(item)
+        items.sort()
     }
 
+    //Delete an item from the database
     fun delete(item: Item){
         val del = "DELETE FROM $TABLE_NAME WHERE ${BaseColumns._ID}=${item.id}"
         var photo: File? = null
@@ -107,6 +117,7 @@ class CollectionDatabase(context: Context, filtered: Boolean = false) :
         collectionSize = items.size
     }
 
+    //Get only unique categories for MainActivity
     fun retrieveCategories(){
         val cursor = db.rawQuery("SELECT DISTINCT $COLUMN_NAME_CATEGORY " +
                 "FROM $TABLE_NAME", null)
@@ -122,8 +133,10 @@ class CollectionDatabase(context: Context, filtered: Boolean = false) :
                 cursor.moveToNext()
             }
         }
+        categories.sort()
     }
 
+    //Get all items of a given category for FilteredCategoryActivity
     fun retrieveByCategory(category: String){
         val cursor = db.rawQuery("SELECT * FROM $TABLE_NAME " +
                 "WHERE $COLUMN_NAME_CATEGORY='$category'", null)
@@ -149,6 +162,7 @@ class CollectionDatabase(context: Context, filtered: Boolean = false) :
                 cursor.moveToNext()
             }
         }
+        items.sort()
         collectionSize = items.size
     }
 
