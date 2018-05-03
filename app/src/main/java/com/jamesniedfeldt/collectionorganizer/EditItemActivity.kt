@@ -33,13 +33,11 @@ const val FROM_RANDOMIZER = "FROM_RANDOMIZER"
 class EditItemActivity : AppCompatActivity(), SensorEventListener{
     var delete = true
     var imageUri: Uri? = null
-    var fileMade = false
     var photo: File? = null
     var toReturn: Intent? = null
 
     //For randomizer only
     var lastShake: Long = 0
-    var itemNum = 0
     var db: CollectionDatabase? = null
     var manager: SensorManager? = null
     var detector: Sensor? = null
@@ -201,15 +199,21 @@ class EditItemActivity : AppCompatActivity(), SensorEventListener{
     //Activity is called from FilteredCategoryActivity (list item)
     private fun setupEditFromFiltered(info: Bundle){
         val strings = info.getStringArrayList(EDIT_FROM_FILTERED)
-        photo = File(Uri.parse(strings[3]).path)
-        imageUri = Uri.fromFile(photo)
-        fileMade = true
+        val toDisplay = Item(strings[0],strings[1],strings[2].toInt(), strings[3])
         delete = false
 
-        edit_name.setText(strings[0])
-        edit_category.setText(strings[1])
-        rating_bar.rating = strings[2].toFloat()
-        edit_pic.setImageURI(Uri.parse(strings[3]))
+        //If the picture is blank, a file needs to be created
+        if(strings[3] == "null"){
+            photo = createFile()
+            delete = true
+        }
+        else{
+            photo = File(Uri.parse(strings[3]).path)
+        }
+
+        imageUri = Uri.fromFile(photo)
+
+        displayItem(toDisplay)
 
         button_ok.setOnClickListener { _ ->
             if(edit_name.text.toString() == ""){
@@ -228,6 +232,7 @@ class EditItemActivity : AppCompatActivity(), SensorEventListener{
 
                 intent.putExtra("SUCCESS_EDIT", itemStrings)
                 setResult(RESULT_OK, intent)
+                delete = false
                 finish()
             }
         }
@@ -242,7 +247,6 @@ class EditItemActivity : AppCompatActivity(), SensorEventListener{
         db = CollectionDatabase(this, true)
         db!!.retrieveByCategory(category)
         delete = false
-        itemNum = db!!.collectionSize
         manager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         detector = manager!!.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION)
 
@@ -261,14 +265,16 @@ class EditItemActivity : AppCompatActivity(), SensorEventListener{
         }
     }
 
-    //When shaken, display a random item
-    private fun displayRandomItem(){
-        val index = Random().nextInt(itemNum)
-        val item = db!!.retrieveItem(index)
-
+    //Populate elements of the screen with an item
+    private fun displayItem(item: Item){
         edit_name.setText(item.name)
         rating_bar.rating = item.rating.toFloat()
-        edit_pic.setImageURI(item.pic)
+        edit_category.setText(item.category)
+        when(item.pic == Uri.parse("null")){
+            //A picture was never set
+            true -> edit_pic.setImageDrawable(getDrawable(R.drawable.no_image))
+            false -> edit_pic.setImageURI(item.pic)
+        }
     }
 
     override fun onSensorChanged(event: SensorEvent?) {
@@ -277,15 +283,18 @@ class EditItemActivity : AppCompatActivity(), SensorEventListener{
             var y = event.values[1]
             var z = event.values[2]
             var force = Math.abs(x + y + z)
+            var index: Int
 
             if(force > 10){
                 //Ignore if there was a shake recently
                 if(System.currentTimeMillis() - lastShake < 500){
                     lastShake = System.currentTimeMillis()
                 }
+                //Show a random item
                 else{
                     lastShake = System.currentTimeMillis()
-                    displayRandomItem()
+                    index = Random().nextInt(db!!.collectionSize)
+                    displayItem(db!!.retrieveItem(index))
                 }
             }
         }
