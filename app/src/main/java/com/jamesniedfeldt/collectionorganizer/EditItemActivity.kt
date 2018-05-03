@@ -13,6 +13,8 @@ import android.widget.Toast
 import kotlinx.android.synthetic.main.activity_edititem.*
 import android.net.Uri
 import android.os.Environment
+import android.os.VibrationEffect
+import android.os.Vibrator
 import android.util.Log
 import android.view.View
 import java.io.File
@@ -29,6 +31,9 @@ const val NEW_FROM_MAIN = "NEW_FROM_MAIN"
 const val NEW_FROM_FILTERED = "NEW_FROM_FILTERED"
 const val EDIT_FROM_FILTERED = "EDIT_FROM_FILTERED"
 const val FROM_RANDOMIZER = "FROM_RANDOMIZER"
+const val SUCCESS_NEW = "SUCCESS_NEW"
+const val SUCCESS_EDIT = "SUCCESS_EDIT"
+const val CATEGORY = "CATEGORY"
 
 class EditItemActivity : AppCompatActivity(), SensorEventListener{
     var delete = true
@@ -41,6 +46,7 @@ class EditItemActivity : AppCompatActivity(), SensorEventListener{
     var db: CollectionDatabase? = null
     var manager: SensorManager? = null
     var detector: Sensor? = null
+    var vibrator: Vibrator? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -147,7 +153,7 @@ class EditItemActivity : AppCompatActivity(), SensorEventListener{
                         rating_bar.rating.toInt().toString(),
                         imageUri.toString())
 
-                intent.putExtra("SUCCESS_NEW", itemStrings)
+                intent.putExtra(SUCCESS_NEW, itemStrings)
                 setResult(RESULT_OK, intent)
                 delete = false
                 finish()
@@ -183,7 +189,7 @@ class EditItemActivity : AppCompatActivity(), SensorEventListener{
                         rating_bar.rating.toInt().toString(),
                         imageUri.toString())
 
-                intent.putExtra("SUCCESS_NEW", itemStrings)
+                intent.putExtra(SUCCESS_NEW, itemStrings)
                 setResult(RESULT_OK, intent)
                 delete = false
                 finish()
@@ -230,7 +236,7 @@ class EditItemActivity : AppCompatActivity(), SensorEventListener{
                         imageUri.toString(),
                         strings[4]) //Id of the item needs to be returned
 
-                intent.putExtra("SUCCESS_EDIT", itemStrings)
+                intent.putExtra(SUCCESS_EDIT, itemStrings)
                 setResult(RESULT_OK, intent)
                 delete = false
                 finish()
@@ -249,6 +255,7 @@ class EditItemActivity : AppCompatActivity(), SensorEventListener{
         delete = false
         manager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         detector = manager!!.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION)
+        vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
 
         manager!!.registerListener(this, detector, SensorManager.SENSOR_STATUS_ACCURACY_LOW)
 
@@ -295,6 +302,12 @@ class EditItemActivity : AppCompatActivity(), SensorEventListener{
                     lastShake = System.currentTimeMillis()
                     index = Random().nextInt(db!!.collectionSize)
                     displayItem(db!!.retrieveItem(index))
+                    if(android.os.Build.VERSION.SDK_INT >= 26){
+                        vibrator!!.vibrate(VibrationEffect.createOneShot(100, 1))
+                    }
+                    else{
+                        vibrator!!.vibrate(100)
+                    }
                 }
             }
         }

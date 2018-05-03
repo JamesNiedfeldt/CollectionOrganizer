@@ -28,8 +28,8 @@ class FilteredCategoryActivity : AppCompatActivity(){
         val info = intent.extras
         val alert = AlertDialog.Builder(this)
 
-        if(info.containsKey("CATEGORY")){
-            category = info["CATEGORY"].toString()
+        if(info.containsKey(CATEGORY)){
+            category = info[CATEGORY].toString()
             supportActionBar!!.title = category
         }
 
@@ -92,8 +92,8 @@ class FilteredCategoryActivity : AppCompatActivity(){
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?){
         //Created new item
-        if(resultCode == RESULT_OK && data!!.extras.containsKey("SUCCESS_NEW")){
-            val results = data!!.extras.getStringArrayList("SUCCESS_NEW")
+        if(resultCode == RESULT_OK && data!!.extras.containsKey(SUCCESS_NEW)){
+            val results = data!!.extras.getStringArrayList(SUCCESS_NEW)
             val name = results[0]
             val category = results[1]
             val rating = results[2].toInt()
@@ -102,8 +102,8 @@ class FilteredCategoryActivity : AppCompatActivity(){
             db.insert(item)
         }
         //Edited already existing item
-        else if(resultCode == RESULT_OK && data!!.extras.containsKey("SUCCESS_EDIT")){
-            val results = data!!.extras.getStringArrayList("SUCCESS_EDIT")
+        else if(resultCode == RESULT_OK && data!!.extras.containsKey(SUCCESS_EDIT)){
+            val results = data!!.extras.getStringArrayList(SUCCESS_EDIT)
             val name = results[0]
             val category = results[1]
             val rating = results[2].toInt()
@@ -118,7 +118,7 @@ class FilteredCategoryActivity : AppCompatActivity(){
 
     private fun newItem(){
         val intent = Intent(this, EditItemActivity::class.java)
-        intent.putExtra("NEW_FROM_FILTERED", category)
+        intent.putExtra(NEW_FROM_FILTERED, category)
         startActivityForResult(intent, NEW_ITEM)
     }
 
@@ -130,13 +130,13 @@ class FilteredCategoryActivity : AppCompatActivity(){
                 item.pic.toString(),
                 item.id.toString())
 
-        intent.putExtra("EDIT_FROM_FILTERED", itemStrings)
+        intent.putExtra(EDIT_FROM_FILTERED, itemStrings)
         startActivityForResult(intent, 123)
     }
 
     private fun randomizer(){
         val intent = Intent(this, EditItemActivity::class.java)
-        intent.putExtra("FROM_RANDOMIZER", category)
+        intent.putExtra(FROM_RANDOMIZER, category)
         startActivity(intent)
     }
 }

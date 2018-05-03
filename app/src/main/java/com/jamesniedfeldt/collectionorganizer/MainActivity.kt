@@ -55,7 +55,7 @@ class MainActivity : AppCompatActivity() {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?){
         //Add a newly created item to the database
         if(resultCode == RESULT_OK){
-            val results = data!!.extras.getStringArrayList("SUCCESS_NEW")
+            val results = data!!.extras.getStringArrayList(SUCCESS_NEW)
             val name = results[0]
             val category = results[1]
             val rating = results[2].toInt()
@@ -77,14 +77,14 @@ class MainActivity : AppCompatActivity() {
     //Create a new item
     private fun newItem(){
         val intent = Intent(this, EditItemActivity::class.java)
-        intent.putExtra("NEW_FROM_MAIN", "")
+        intent.putExtra(NEW_FROM_MAIN, "")
         startActivityForResult(intent, NEW_ITEM)
     }
 
     //Show items from the selected category
     private fun showItems(category: String){
         val intent = Intent(this, FilteredCategoryActivity::class.java)
-        intent.putExtra("CATEGORY", category)
+        intent.putExtra(CATEGORY, category)
         startActivity(intent)
     }
 }
